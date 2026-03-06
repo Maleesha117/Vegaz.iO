@@ -151,6 +151,51 @@ def login():
     
     return jsonify({'error': 'Invalid credentials'}), 401
 
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+
+    if username == "Admin" and password == "Password":
+        token = jwt.encode({
+            'user_id': 'admin_root',
+            'username': 'Admin',
+            'role': 'admin',
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+        }, JWT_SECRET, algorithm="HS256")
+        return jsonify({'token': token, 'name': 'Super Admin', 'role': 'admin'}), 200
+    
+    return jsonify({'error': 'Invalid Admin credentials'}), 401
+
+@app.route('/api/admin/add_user', methods=['POST'])
+def admin_add_user():
+    data = request.json
+    name = data.get('name')
+    email = data.get('email')
+    password = data.get('password')
+    role = data.get('role', 'user') # allow admin to set role
+
+    if not all([name, email, password]):
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    if users_collection.find_one({'email': email}):
+        return jsonify({'error': 'User already exists'}), 400
+
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+    
+    user_doc = {
+        'name': name,
+        'email': email,
+        'password': hashed_password,
+        'role': role,
+        'created_at': datetime.datetime.utcnow()
+    }
+    users_collection.insert_one(user_doc)
+    
+    return jsonify({'message': 'User created successfully'}), 201
+
 @app.route('/api/admin/stats', methods=['GET'])
 def get_admin_stats():
     total_users = users_collection.count_documents({})
