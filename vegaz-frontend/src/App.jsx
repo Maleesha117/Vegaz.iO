@@ -6,14 +6,17 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import AdminDashboard from './pages/AdminDashboard';
 
 function Navigation() {
   const navigate = useNavigate();
   const [userName, setUserName] = useState(localStorage.getItem('userName'));
+  const [userRole, setUserRole] = useState(localStorage.getItem('userRole'));
 
   useEffect(() => {
     const handleStorageChange = () => {
       setUserName(localStorage.getItem('userName'));
+      setUserRole(localStorage.getItem('userRole'));
     };
 
     // Listen to custom event dispatched by Login Page and storage events
@@ -24,7 +27,9 @@ function Navigation() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
     setUserName(null);
+    setUserRole(null);
     navigate('/login');
   };
 
@@ -42,8 +47,13 @@ function Navigation() {
                 <li className="nav-item me-3">
                   <span className="nav-link text-white fw-medium">Welcome, {userName}!</span>
                 </li>
+                {userRole === "admin" && (
+                  <li className="nav-item me-3">
+                    <Link className="btn btn-sm btn-light fw-bold rounded-pill px-3 mt-1 text-primary" to="/admin">👑 Admin</Link>
+                  </li>
+                )}
                 <li className="nav-item">
-                  <button onClick={handleLogout} className="btn btn-outline-light btn-sm fw-bold rounded-pill px-4">Logout</button>
+                  <button onClick={handleLogout} className="btn btn-outline-light btn-sm fw-bold rounded-pill px-4 mt-1">Logout</button>
                 </li>
               </>
             ) : (
@@ -73,6 +83,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Routes>
         </div>
       </div>

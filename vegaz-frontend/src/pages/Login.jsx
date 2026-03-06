@@ -17,6 +17,7 @@ function Login() {
             });
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('userName', response.data.name);
+            localStorage.setItem('userRole', response.data.role);
             // Dispatch a custom event to update navbar dynamically
             window.dispatchEvent(new Event("storage"));
             navigate('/');

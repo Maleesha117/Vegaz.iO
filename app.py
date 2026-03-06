@@ -118,6 +118,7 @@ def signup():
         'name': name,
         'email': email,
         'password': hashed_password,
+        'role': 'user',
         'created_at': datetime.datetime.utcnow()
     }
     users_collection.insert_one(user_doc)
@@ -142,12 +143,31 @@ def login():
             'user_id': str(user['_id']),
             'email': user['email'],
             'name': user['name'],
+            'role': user.get('role', 'user'),
             'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
         }, JWT_SECRET, algorithm="HS256")
         
-        return jsonify({'token': token, 'name': user['name']}), 200
+        return jsonify({'token': token, 'name': user['name'], 'role': user.get('role', 'user')}), 200
     
     return jsonify({'error': 'Invalid credentials'}), 401
+
+@app.route('/api/admin/stats', methods=['GET'])
+def get_admin_stats():
+    total_users = users_collection.count_documents({})
+    # Count total hotels in your dataset
+    total_hotels = len(hotels_df) if 'hotels_df' in globals() else 0
+    
+    return jsonify({
+        'total_users': total_users,
+        'total_hotels': total_hotels
+    })
+
+@app.route('/api/admin/users', methods=['GET'])
+def get_all_users():
+    users = list(users_collection.find({}, {'password': 0}))
+    for user in users:
+        user['_id'] = str(user['_id'])
+    return jsonify(users)
 
 @app.route('/uploads/<path:filename>')
 def serve_uploads(filename):
