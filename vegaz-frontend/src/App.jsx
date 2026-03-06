@@ -34,42 +34,45 @@ function Navigation() {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark shadow-sm" style={{ background: 'linear-gradient(to right, #0052D4, #4364F7)' }}>
-      <div className="container">
-        <Link className="navbar-brand fw-bold fs-3" to="/">VEGAZ.io</Link>
-        <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className="collapse navbar-collapse justify-content-end" id="navbarNav">
-          <ul className="navbar-nav align-items-center">
-            {userName ? (
-              <>
-                <li className="nav-item me-3">
-                  <span className="nav-link text-white fw-medium">Welcome, {userName}!</span>
-                </li>
-                {userRole === "admin" && (
-                  <li className="nav-item me-3">
-                    <Link className="btn btn-sm btn-light fw-bold rounded-pill px-3 mt-1 text-primary" to="/admin">👑 Admin</Link>
-                  </li>
-                )}
-                <li className="nav-item">
-                  <button onClick={handleLogout} className="btn btn-outline-light btn-sm fw-bold rounded-pill px-4 mt-1">Logout</button>
-                </li>
-              </>
-            ) : (
-              <>
-                <li className="nav-item me-2">
-                  <Link className="nav-link text-white fw-medium" to="/login">Sign In</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="btn btn-warning btn-sm fw-bold rounded-pill px-4" to="/signup">Sign Up</Link>
-                </li>
-              </>
-            )}
-          </ul>
+    <div className="bg-primary text-white py-4 mb-5 shadow" style={{ background: 'linear-gradient(to right, #0052D4, #4364F7, #6FB1FC)' }}>
+      <div className="container d-flex justify-content-between align-items-center">
+
+        {/* Logo / Brand Name */}
+        <h2 className="fw-bold m-0" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+          VEGAZ.io
+        </h2>
+
+        {/* User Controls */}
+        <div className="d-flex align-items-center">
+
+          {userName ? (
+            <>
+              {/* 🟢 THE MAGIC CONDITIONAL BUTTON 🟢 */}
+              {userRole === 'admin' && (
+                <button
+                  className="btn btn-sm btn-warning fw-bold me-3 shadow-sm"
+                  onClick={() => navigate('/admin')}
+                >
+                  ⚙️ Admin Panel
+                </button>
+              )}
+
+              {/* Standard User Info & Logout */}
+              <span className="me-3 fs-6">👤 Hello, {userName}</span>
+              <button className="btn btn-sm btn-light fw-bold text-primary shadow-sm" onClick={handleLogout}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link className="btn btn-sm btn-outline-light fw-bold me-2 px-4 shadow-sm" to="/login">Sign In</Link>
+              <Link className="btn btn-sm btn-warning fw-bold px-4 shadow-sm" to="/signup">Sign Up</Link>
+            </>
+          )}
+
         </div>
       </div>
-    </nav>
+    </div>
   );
 }
 
