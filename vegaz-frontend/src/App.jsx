@@ -66,7 +66,13 @@ function Navigation() {
           ) : (
             <>
               <Link className="btn btn-sm btn-outline-light fw-bold me-2 px-4 shadow-sm" to="/login">Sign In</Link>
-              <Link className="btn btn-sm btn-warning fw-bold px-4 shadow-sm" to="/signup">Sign Up</Link>
+              <Link className="btn btn-sm btn-warning fw-bold me-3 px-4 shadow-sm" to="/signup">Sign Up</Link>
+              <button
+                className="btn btn-sm btn-light fw-bold text-primary shadow-sm"
+                onClick={() => navigate('/admin')}
+              >
+                ⚙️ Admin
+              </button>
             </>
           )}
 
