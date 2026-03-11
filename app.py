@@ -73,6 +73,8 @@ def get_hotels():
     
     top_results = search_df.sort_values(by='score', ascending=False).head(5)
     
+    return jsonify(process_hotels(top_results))
+
 @app.route('/api/hotels/<hotel_id>', methods=['GET'])
 def get_hotel(hotel_id):
     try:

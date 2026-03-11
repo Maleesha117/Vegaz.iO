@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import AdminDashboard from './pages/AdminDashboard';
 import HotelDetails from './pages/HotelDetails';
+import PageTransition from './components/PageTransition';
 
 function Navigation() {
   const navigate = useNavigate();
@@ -89,13 +90,15 @@ function App() {
       <div className="min-vh-100 d-flex flex-column">
         <Navigation />
         <div className="flex-grow-1">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/hotel/:id" element={<HotelDetails />} />
-          </Routes>
+          <PageTransition>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/hotel/:id" element={<HotelDetails />} />
+            </Routes>
+          </PageTransition>
         </div>
       </div>
     </Router>
