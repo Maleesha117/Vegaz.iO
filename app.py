@@ -73,7 +73,15 @@ def get_hotels():
     
     top_results = search_df.sort_values(by='score', ascending=False).head(5)
     
-    return jsonify(process_hotels(top_results))
+@app.route('/api/hotels/<hotel_id>', methods=['GET'])
+def get_hotel(hotel_id):
+    try:
+        hotel_data = hotels_df[hotels_df['id'].astype(str) == str(hotel_id)]
+        if hotel_data.empty:
+            return jsonify({'error': 'Hotel not found'}), 404
+        return jsonify(process_hotels(hotel_data)[0])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/api/predict', methods=['POST'])
 def predict_price():

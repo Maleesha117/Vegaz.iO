@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const ImageSlider = ({ images, alt }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -33,6 +34,7 @@ const ImageSlider = ({ images, alt }) => {
 };
 
 function Home() {
+    const navigate = useNavigate();
     const [hotels, setHotels] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [predictions, setPredictions] = useState({});
@@ -133,7 +135,7 @@ function Home() {
                                             )}
                                         </div>
                                     </div>
-                                    <button className="btn btn-dark w-100 mt-3 fw-bold">View Deal ➔</button>
+                                    <button className="btn btn-dark w-100 mt-3 fw-bold" onClick={() => navigate(`/hotel/${hotel.id}`)}>View Deal ➔</button>
 
                                 </div>
                             </div>
