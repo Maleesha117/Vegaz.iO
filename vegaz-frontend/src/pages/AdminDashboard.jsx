@@ -89,12 +89,37 @@ function AdminDashboard() {
     const handleAddHotel = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://127.0.0.1:5001/api/admin/add_hotel', hotelData);
-            setAddHotelMessage('🏨 Proprietary Hotel added and synced with AI memory fully!');
+            // Because we are uploading files, we must use FormData
+            const formData = new FormData();
+            formData.append('name', hotelData.name);
+            formData.append('location', hotelData.location);
+            formData.append('desc', hotelData.desc);
+            formData.append('rating', hotelData.rating);
+            formData.append('price_agoda', hotelData.price_agoda);
+            formData.append('price_official', hotelData.price_official);
+            formData.append('price_booking', hotelData.price_booking);
+
+            // Append each file selected in the input
+            if (hotelData.images && hotelData.images.length > 0) {
+                Array.from(hotelData.images).forEach(file => {
+                    formData.append('images', file);
+                });
+            }
+
+            await axios.post('http://127.0.0.1:5001/api/admin/add_hotel', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            setAddHotelMessage('🏨 Proprietary Hotel added and images uploaded fully!');
             setHotelData({
                 name: '', location: '', desc: '', rating: '5.0', images: '',
                 price_agoda: '', price_official: '', price_booking: ''
             });
+
+            // Reset the actual file input DOM element if needed (using document.getElementById for simplicity)
+            const fileInput = document.getElementById('hotelImagesUpload');
+            if (fileInput) fileInput.value = '';
+
             fetchAdminData();
             setTimeout(() => setAddHotelMessage(''), 4000);
         } catch (err) {
@@ -198,8 +223,16 @@ function AdminDashboard() {
                                 <textarea className="form-control" rows="3" value={hotelData.desc} onChange={e => setHotelData({ ...hotelData, desc: e.target.value })} placeholder="Describe the luxury details..."></textarea>
                             </div>
                             <div className="col-md-6">
-                                <label className="form-label fw-bold small">Image URLs (comma separated)</label>
-                                <textarea className="form-control" rows="3" value={hotelData.images} onChange={e => setHotelData({ ...hotelData, images: e.target.value })} placeholder="http://image1.jpg, http://image2.jpg..."></textarea>
+                                <label className="form-label fw-bold small">Upload Hotel Images</label>
+                                <input
+                                    type="file"
+                                    id="hotelImagesUpload"
+                                    className="form-control"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={e => setHotelData({ ...hotelData, images: e.target.files })}
+                                />
+                                <small className="text-muted d-block mt-1">Select multiple images to populate the premium gallery.</small>
                             </div>
                         </div>
 

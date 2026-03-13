@@ -8,6 +8,7 @@ import bcrypt
 import jwt
 import datetime
 from pymongo import MongoClient
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 CORS(app) 
@@ -250,7 +251,8 @@ def get_all_users():
 
 @app.route('/api/admin/add_hotel', methods=['POST'])
 def add_custom_hotel():
-    data = request.json
+    # Use request.form instead of request.json for multipart/form-data
+    data = request.form
     global hotels_df, hotel_embeddings
     
     try:
@@ -264,9 +266,26 @@ def add_custom_hotel():
             {'site': 'Booking.com', 'price': int(data.get('price_booking', 0))}
         ]
         
-        # Make sure images are a list
-        raw_images = data.get('images', '')
-        image_list = [img.strip() for img in raw_images.split(',')] if raw_images else []
+        # Handle actual file uploads
+        uploaded_files = request.files.getlist('images')
+        image_urls = []
+        
+        upload_dir = os.path.join(BASE_DIR, 'uploads')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        for file in uploaded_files:
+            if file and file.filename:
+                # Sanitize and prepend the new_id to prevent naming collisions
+                filename = secure_filename(file.filename)
+                unique_filename = f"{new_id}_{filename}"
+                file_path = os.path.join(upload_dir, unique_filename)
+                
+                # Save physically to the backend disk
+                file.save(file_path)
+                
+                # Construct the static URL for the frontend to digest
+                image_url = f"http://127.0.0.1:5001/uploads/{unique_filename}"
+                image_urls.append(image_url)
         
         combined_text = f"{data.get('name', '')} {data.get('location', '')} {data.get('desc', '')}"
         
@@ -276,7 +295,7 @@ def add_custom_hotel():
             'location': data.get('location'),
             'desc': data.get('desc'),
             'rating': float(data.get('rating', 0.0)),
-            'image': image_list,
+            'image': image_urls,
             'price_list': price_list,
             'combined_text': combined_text
         }
