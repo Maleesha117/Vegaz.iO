@@ -316,6 +316,85 @@ def add_custom_hotel():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+@app.route('/api/admin/hotels', methods=['GET'])
+def get_admin_hotels():
+    # Return all custom hotels added by the admin
+    try:
+        custom_hotels = list(hotels_collection.find({}, {'_id': 0}))
+        return jsonify(custom_hotels), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/edit_hotel/<hotel_id>', methods=['PUT'])
+def edit_custom_hotel(hotel_id):
+    data = request.form
+    global hotels_df, hotel_embeddings
+    
+    try:
+        # Find existing hotel
+        existing_hotel = hotels_collection.find_one({'id': hotel_id})
+        if not existing_hotel:
+            return jsonify({'error': 'Hotel not found'}), 404
+
+        price_list = [
+            {'site': 'Agoda', 'price': int(data.get('price_agoda', 0))},
+            {'site': 'Official', 'price': int(data.get('price_official', 0))},
+            {'site': 'Booking.com', 'price': int(data.get('price_booking', 0))}
+        ]
+        
+        # Handle new image uploads if provided
+        uploaded_files = request.files.getlist('images')
+        image_urls = existing_hotel.get('image', [])  # Default to keeping existing images
+        
+        # If user actually selected new files to upload, replace the images array
+        if uploaded_files and any(f.filename for f in uploaded_files):
+            image_urls = []
+            upload_dir = os.path.join(BASE_DIR, 'uploads')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            for file in uploaded_files:
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    unique_filename = f"{hotel_id}_{filename}"
+                    file_path = os.path.join(upload_dir, unique_filename)
+                    file.save(file_path)
+                    
+                    image_url = f"http://127.0.0.1:5001/uploads/{unique_filename}"
+                    image_urls.append(image_url)
+        
+        combined_text = f"{data.get('name', '')} {data.get('location', '')} {data.get('desc', '')}"
+        
+        updated_hotel = {
+            'id': hotel_id,
+            'name': data.get('name'),
+            'location': data.get('location'),
+            'desc': data.get('desc'),
+            'rating': float(data.get('rating', 0.0)),
+            'image': image_urls,
+            'price_list': price_list,
+            'combined_text': combined_text
+        }
+        
+        # 1. Update in MongoDB
+        hotels_collection.update_one({'id': hotel_id}, {'$set': updated_hotel})
+        
+        # 2. Update Live Memory Process (hotels_df and hotel_embeddings)
+        import numpy as np
+        if hotel_id in hotels_df['id'].values:
+            idx = hotels_df[hotels_df['id'] == hotel_id].index[0]
+            
+            # Update DataFrame row
+            for key, val in updated_hotel.items():
+                hotels_df.at[idx, key] = val
+                
+            # Recalculate AI Embedding and overwrite the specific row in the numpy matrix
+            new_emb = search_model.encode([combined_text])
+            hotel_embeddings[idx] = new_emb[0]
+
+        return jsonify({'message': 'Hotel updated successfully!', 'hotel': updated_hotel}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/uploads/<path:filename>')
 def serve_uploads(filename):
