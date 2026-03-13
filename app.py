@@ -26,6 +26,7 @@ try:
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     db = client['vegaz']              # Api compass eke hadapu database eka
     users_collection = db['users']    # Api compass eke hadapu collection eka
+    hotels_collection = db['custom_hotels'] # Custom hotels database for Admin
     print("✅ Connected to MongoDB successfully!")
 except Exception as e:
     print(f"❌ MongoDB Connection Error: {e}")
@@ -45,6 +46,29 @@ if os.path.exists(PRICE_MODEL_PATH):
         price_model = pickle.load(f)
 else:
     price_model = None
+
+# --- SYNC DATABASE CUSTOM HOTELS TO IN-MEMORY DATAFRAME ---
+# So the AI smart search works instantly for newly added hotels
+def sync_custom_hotels():
+    global hotels_df, hotel_embeddings
+    try:
+        custom_hotels = list(hotels_collection.find({}, {'_id': 0}))
+        if custom_hotels and len(custom_hotels) > 0:
+            custom_df = pd.DataFrame(custom_hotels)
+            if 'combined_text' not in custom_df.columns:
+                custom_df['combined_text'] = custom_df['name'] + " " + custom_df['location'] + " " + custom_df['desc']
+            
+            custom_embeddings = search_model.encode(custom_df['combined_text'].tolist())
+            
+            # Append custom hotels to the existing pandas dataframe and np array
+            hotels_df = pd.concat([hotels_df, custom_df], ignore_index=True)
+            import numpy as np
+            hotel_embeddings = np.vstack((hotel_embeddings, custom_embeddings))
+            print(f"✅ Synced {len(custom_hotels)} custom hotels to search memory!")
+    except Exception as e:
+        print(f"⚠️ Error syncing custom hotels: {e}")
+
+sync_custom_hotels()
 
 # --- HELPER: RANKING ALGORITHM ---
 def process_hotels(df_subset):
@@ -223,6 +247,56 @@ def get_all_users():
     for user in users:
         user['_id'] = str(user['_id'])
     return jsonify(users)
+
+@app.route('/api/admin/add_hotel', methods=['POST'])
+def add_custom_hotel():
+    data = request.json
+    global hotels_df, hotel_embeddings
+    
+    try:
+        # Create new ID
+        new_id = f"custom_{int(datetime.datetime.utcnow().timestamp())}"
+        
+        # Structure payload to match our existing DB requirements exactly
+        price_list = [
+            {'site': 'Agoda', 'price': int(data.get('price_agoda', 0))},
+            {'site': 'Official', 'price': int(data.get('price_official', 0))},
+            {'site': 'Booking.com', 'price': int(data.get('price_booking', 0))}
+        ]
+        
+        # Make sure images are a list
+        raw_images = data.get('images', '')
+        image_list = [img.strip() for img in raw_images.split(',')] if raw_images else []
+        
+        combined_text = f"{data.get('name', '')} {data.get('location', '')} {data.get('desc', '')}"
+        
+        new_hotel = {
+            'id': new_id,
+            'name': data.get('name'),
+            'location': data.get('location'),
+            'desc': data.get('desc'),
+            'rating': float(data.get('rating', 0.0)),
+            'image': image_list,
+            'price_list': price_list,
+            'combined_text': combined_text
+        }
+        
+        # 1. Save to MongoDB natively
+        hotels_collection.insert_one(new_hotel.copy())
+        
+        # 2. Add into system memory for AI Smart Search
+        new_df = pd.DataFrame([new_hotel])
+        new_emb = search_model.encode([combined_text])
+        
+        hotels_df = pd.concat([hotels_df, new_df], ignore_index=True)
+        import numpy as np
+        hotel_embeddings = np.vstack((hotel_embeddings, new_emb))
+        
+        return jsonify({'message': 'Hotel added successfully!', 'hotel_id': new_id}), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
 
 @app.route('/uploads/<path:filename>')
 def serve_uploads(filename):

@@ -20,6 +20,17 @@ function AdminDashboard() {
     const [newUserRole, setNewUserRole] = useState('user');
     const [addUserMessage, setAddUserMessage] = useState('');
 
+    // Add Hotel State
+    const [hotelData, setHotelData] = useState({
+        name: '', location: '', desc: '', rating: '5.0', images: '',
+        price_agoda: '', price_official: '', price_booking: ''
+    });
+    const [addHotelMessage, setAddHotelMessage] = useState('');
+
+    // AI Prediction Test State
+    const [testPrice, setTestPrice] = useState('');
+    const [predictionResult, setPredictionResult] = useState(null);
+
     const fetchAdminData = () => {
         axios.get('http://127.0.0.1:5001/api/admin/stats')
             .then(res => setStats(res.data))
@@ -64,16 +75,44 @@ function AdminDashboard() {
                 role: newUserRole
             });
             setAddUserMessage('User added successfully!');
-            // Reset form
             setNewUserName('');
             setNewUserEmail('');
             setNewUserPassword('');
             setNewUserRole('user');
-            // Refresh list and stats
             fetchAdminData();
             setTimeout(() => setAddUserMessage(''), 3000);
         } catch (err) {
             setAddUserMessage(err.response?.data?.error || 'Failed to add user');
+        }
+    };
+
+    const handleAddHotel = async (e) => {
+        e.preventDefault();
+        try {
+            await axios.post('http://127.0.0.1:5001/api/admin/add_hotel', hotelData);
+            setAddHotelMessage('🏨 Proprietary Hotel added and synced with AI memory fully!');
+            setHotelData({
+                name: '', location: '', desc: '', rating: '5.0', images: '',
+                price_agoda: '', price_official: '', price_booking: ''
+            });
+            fetchAdminData();
+            setTimeout(() => setAddHotelMessage(''), 4000);
+        } catch (err) {
+            setAddHotelMessage(err.response?.data?.error || 'Failed to add hotel');
+            setTimeout(() => setAddHotelMessage(''), 4000);
+        }
+    };
+
+    const handleAITest = async (e) => {
+        e.preventDefault();
+        if (!testPrice) return;
+        try {
+            const res = await axios.post('http://127.0.0.1:5001/api/predict', {
+                current_price: parseFloat(testPrice), lead_time: 30, month: 3
+            });
+            setPredictionResult(res.data);
+        } catch (err) {
+            console.error("AI test error", err);
         }
     };
 
@@ -122,6 +161,84 @@ function AdminDashboard() {
                             <h2 className="display-4 fw-bold">{stats.total_hotels}</h2>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* Add Proprietary Hotel Section */}
+            <h4 className="mb-3 mt-5">🏨 Add Proprietary Hotel</h4>
+            <div className="card shadow border-0 mb-5">
+                <div className="card-body bg-light rounded">
+                    {addHotelMessage && (
+                        <div className={`alert py-2 ${addHotelMessage.includes('success') ? 'alert-success' : 'alert-danger'}`}>
+                            {addHotelMessage}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleAddHotel}>
+                        {/* Basic Overview Row */}
+                        <div className="row g-3 mb-3">
+                            <div className="col-md-5">
+                                <label className="form-label fw-bold small">Hotel Name</label>
+                                <input type="text" className="form-control" value={hotelData.name} onChange={e => setHotelData({ ...hotelData, name: e.target.value })} placeholder="e.g. The Grand Palace" required />
+                            </div>
+                            <div className="col-md-5">
+                                <label className="form-label fw-bold small">Location (City, Country)</label>
+                                <input type="text" className="form-control" value={hotelData.location} onChange={e => setHotelData({ ...hotelData, location: e.target.value })} placeholder="e.g. Dubai, UAE" required />
+                            </div>
+                            <div className="col-md-2">
+                                <label className="form-label fw-bold small">Star Rating</label>
+                                <input type="number" step="0.1" max="5" className="form-control" value={hotelData.rating} onChange={e => setHotelData({ ...hotelData, rating: e.target.value })} required />
+                            </div>
+                        </div>
+
+                        {/* Description & Media */}
+                        <div className="row g-3 mb-3">
+                            <div className="col-md-6">
+                                <label className="form-label fw-bold small">Marketing Description</label>
+                                <textarea className="form-control" rows="3" value={hotelData.desc} onChange={e => setHotelData({ ...hotelData, desc: e.target.value })} placeholder="Describe the luxury details..."></textarea>
+                            </div>
+                            <div className="col-md-6">
+                                <label className="form-label fw-bold small">Image URLs (comma separated)</label>
+                                <textarea className="form-control" rows="3" value={hotelData.images} onChange={e => setHotelData({ ...hotelData, images: e.target.value })} placeholder="http://image1.jpg, http://image2.jpg..."></textarea>
+                            </div>
+                        </div>
+
+                        {/* Pricing & AI Test Section */}
+                        <div className="row g-3 align-items-end mb-4">
+                            <div className="col-md-3">
+                                <label className="form-label fw-bold small text-primary">Agoda Price (LKR)</label>
+                                <input type="number" className="form-control" value={hotelData.price_agoda} onChange={e => setHotelData({ ...hotelData, price_agoda: e.target.value })} required />
+                            </div>
+                            <div className="col-md-3">
+                                <label className="form-label fw-bold small text-primary">Official Site Price (LKR)</label>
+                                <input type="number" className="form-control" value={hotelData.price_official} onChange={e => setHotelData({ ...hotelData, price_official: e.target.value })} required />
+                            </div>
+                            <div className="col-md-3">
+                                <label className="form-label fw-bold small text-primary">Booking.com Price (LKR)</label>
+                                <input type="number" className="form-control" value={hotelData.price_booking} onChange={e => setHotelData({ ...hotelData, price_booking: e.target.value })} required />
+                            </div>
+                        </div>
+
+                        <div className="d-flex justify-content-between align-items-center bg-white p-3 rounded border mb-4 shadow-sm">
+                            <div className="d-flex gap-3 align-items-center w-50">
+                                <div>
+                                    <label className="form-label fw-bold small mb-0 text-muted">Test AI Forecast Prediction</label>
+                                    <div className="input-group">
+                                        <input type="number" className="form-control form-control-sm" placeholder="Enter previous LKR price..." value={testPrice} onChange={e => setTestPrice(e.target.value)} />
+                                        <button className="btn btn-outline-info btn-sm fw-bold" type="button" onClick={handleAITest}>Test AI ✨</button>
+                                    </div>
+                                </div>
+                                {predictionResult && (
+                                    <div className={`mt-4 mb-0 alert py-1 px-3 fw-bold small ${predictionResult.color === 'red' ? 'alert-danger' : 'alert-success'}`}>
+                                        {predictionResult.advice}
+                                    </div>
+                                )}
+                            </div>
+
+                            <button type="submit" className="btn btn-primary btn-lg fw-bold px-5 shadow">Publish Hotel to Database</button>
+                        </div>
+
+                    </form>
                 </div>
             </div>
 
